@@ -75,7 +75,14 @@ export function useGeolocation(opts: UseGeolocationOptions): UseGeolocationResul
     maxAccuracyM = CONFIG.GPS_MAX_ACCURACY_M,
     now = Date.now,
   } = opts;
-  const api = opts.api === undefined ? createDefaultGeoApi() : opts.api;
+  // Memoize the default GeoApi so it keeps a stable identity across renders. Without this the
+  // effect below (which lists `api` as a dependency) would tear down and re-subscribe
+  // watchPosition on every render, resetting the sample throttle and firing points in a loop.
+  const defaultApiRef = useRef<{ api: GeoApi | null } | null>(null);
+  if (defaultApiRef.current === null) {
+    defaultApiRef.current = { api: createDefaultGeoApi() };
+  }
+  const api = opts.api === undefined ? defaultApiRef.current.api : opts.api;
   const supported = api !== null;
 
   const [lastFix, setLastFix] = useState<GeoPoint | null>(null);

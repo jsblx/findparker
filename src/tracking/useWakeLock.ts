@@ -39,7 +39,14 @@ export interface UseWakeLockResult {
 }
 
 export function useWakeLock(active: boolean, opts: UseWakeLockOptions = {}): UseWakeLockResult {
-  const api = opts.api === undefined ? createDefaultWakeLockApi() : opts.api;
+  // Memoize the default WakeLockApi so it keeps a stable identity across renders. Otherwise the
+  // effect below (which depends on `api`) would re-run every render, releasing and re-acquiring
+  // the wake lock in a loop.
+  const defaultApiRef = useRef<{ api: WakeLockApi | null } | null>(null);
+  if (defaultApiRef.current === null) {
+    defaultApiRef.current = { api: createDefaultWakeLockApi() };
+  }
+  const api = opts.api === undefined ? defaultApiRef.current.api : opts.api;
   const doc = opts.doc ?? defaultVisibilityDoc();
   const supported = api !== null;
 
