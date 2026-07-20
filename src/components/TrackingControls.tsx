@@ -86,10 +86,10 @@ export function TrackingControls({
 
       {!idle && (
         <div className="status-panel">
-          <p>
+          <p data-testid="session-status">
             Status: <strong>{status === 'paused' ? 'Paused' : 'Active'}</strong>
           </p>
-          <p>Points collected: {pointsCollected}</p>
+          <p data-testid="points-collected">Points collected: {pointsCollected}</p>
           <p>Queued (offline): {queued}</p>
           <p>Screen wake lock: {wakeLockActive ? 'active' : 'inactive'}</p>
         </div>

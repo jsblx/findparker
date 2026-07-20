@@ -32,10 +32,16 @@ export function SightingList({ sightings, promotedSightings, ipp, role, onVerify
         const distanceM = ipp ? haversineM(ipp, { lat: effective.lat, lng: effective.lng }) : null;
 
         return (
-          <li key={effective.id} className="sighting-card">
+          <li key={effective.id} className="sighting-card" data-testid="sighting-card">
             <div className="sighting-card-header">
-              <span className={`badge badge-${effective.status}`}>{effective.status}</span>
-              {effective.verifiedVia && <span className="muted small">via {effective.verifiedVia}</span>}
+              <span className={`badge badge-${effective.status}`} data-testid="sighting-status-badge">
+                {effective.status}
+              </span>
+              {effective.verifiedVia && (
+                <span className="muted small" data-testid="sighting-verified-via">
+                  via {effective.verifiedVia}
+                </span>
+              )}
               <span className="muted small">{new Date(effective.observedAt).toLocaleString()}</span>
             </div>
             <p>
