@@ -69,12 +69,27 @@ export function createMemoryStore(): QueueStore {
 
 /** Wraps a QueueStore with enqueue/flush semantics so callers never touch storage directly. */
 export class OfflineQueue {
+  /** Chains all store mutations (enqueue + flush) so they never race against each other. */
+  private tail: Promise<void> = Promise.resolve();
+
   constructor(private readonly store: QueueStore) {}
+
+  /** Runs `op` after any prior queued operation settles, so store reads/writes stay serialized. */
+  private serialize<T>(op: () => Promise<T>): Promise<T> {
+    const run = this.tail.catch(() => undefined).then(op);
+    this.tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
 
   async enqueue(points: QueuedPoint[]): Promise<void> {
     if (points.length === 0) return;
-    const existing = await this.store.load();
-    await this.store.save([...existing, ...points]);
+    return this.serialize(async () => {
+      const existing = await this.store.load();
+      await this.store.save([...existing, ...points]);
+    });
   }
 
   async size(): Promise<number> {
@@ -86,13 +101,23 @@ export class OfflineQueue {
   }
 
   /**
-   * Loads whatever is queued and hands it to `send`. Clears the queue only on success;
-   * on failure the points remain queued so the next flush attempt (e.g. on 'online') retries them.
+   * Loads whatever is queued and hands it to `send`. Only the points that were actually
+   * handed to `send` are removed afterward - anything enqueued while `send` was in flight
+   * is appended after them in storage and survives. Clears nothing on failure, so the
+   * points remain queued for the next flush attempt (e.g. on 'online') to retry.
+   *
+   * Calls are serialized: each flush waits for any previous one to settle before loading
+   * the store, so concurrent callers never race or double-send.
    */
   async flush(send: (points: QueuedPoint[]) => Promise<void>): Promise<void> {
+    return this.serialize(() => this.doFlush(send));
+  }
+
+  private async doFlush(send: (points: QueuedPoint[]) => Promise<void>): Promise<void> {
     const points = await this.store.load();
     if (points.length === 0) return;
     await send(points);
-    await this.store.clear();
+    const after = await this.store.load();
+    await this.store.save(after.slice(points.length));
   }
 }
