@@ -13,7 +13,7 @@ export function SearcherView() {
   const incidentId = id ?? '';
   const data = useData();
   const session = useSearchSession({ provider: data, incidentId });
-  const { incident, coverage, probability, searchNext, sightings } = useIncidentSurfaces(incidentId);
+  const { incident, coverage, probability, searchNext, promotedSightings } = useIncidentSurfaces(incidentId);
 
   const watchtowerAddedForSessionRef = useRef<string | null>(null);
   const pendingWatchtowerRadiusRef = useRef(100);
@@ -76,7 +76,7 @@ export function SearcherView() {
             coverage={coverage}
             probability={probability}
             searchNext={searchNext}
-            sightings={sightings}
+            sightings={promotedSightings}
             toggles={DEFAULT_LAYER_TOGGLES}
           />
         </div>

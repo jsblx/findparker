@@ -140,7 +140,7 @@ export function CoordinatorView() {
             coverage={coverage}
             probability={probability}
             searchNext={searchNext}
-            sightings={sightings}
+            sightings={promotedSightings}
             toggles={DEFAULT_LAYER_TOGGLES}
           />
         </div>

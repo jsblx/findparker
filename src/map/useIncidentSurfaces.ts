@@ -40,6 +40,7 @@ export function useIncidentSurfaces(incidentId: string): UseIncidentSurfacesResu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [version, setVersion] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     try {
@@ -78,8 +79,16 @@ export function useIncidentSurfaces(incidentId: string): UseIncidentSurfacesResu
 
   useEffect(() => {
     setLoading(true);
+  }, [incidentId]);
+
+  useEffect(() => {
     load();
   }, [load, version]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timeoutRef: { current: ReturnType<typeof setTimeout> | null } = { current: null };
@@ -103,8 +112,8 @@ export function useIncidentSurfaces(incidentId: string): UseIncidentSurfacesResu
         promotedSightings: [] as Sighting[],
       };
     }
-    return computeSurfaces({ incident, trackPoints, watchtowers, sightings, now: Date.now() });
-  }, [incident, trackPoints, watchtowers, sightings]);
+    return computeSurfaces({ incident, trackPoints, watchtowers, sightings, now });
+  }, [incident, trackPoints, watchtowers, sightings, now]);
 
   return {
     incident,

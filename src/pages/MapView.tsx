@@ -10,8 +10,18 @@ import type { LayerToggles as LayerTogglesState } from '../map/MapCanvas';
 export function MapView() {
   const { id } = useParams<{ id: string }>();
   const [toggles, setToggles] = useState<LayerTogglesState>(DEFAULT_LAYER_TOGGLES);
-  const { incident, trackPoints, watchtowers, sightings, coverage, probability, searchNext, loading, error } =
-    useIncidentSurfaces(id ?? '');
+  const {
+    incident,
+    trackPoints,
+    watchtowers,
+    sightings,
+    promotedSightings,
+    coverage,
+    probability,
+    searchNext,
+    loading,
+    error,
+  } = useIncidentSurfaces(id ?? '');
 
   if (!id) {
     return (
@@ -31,7 +41,7 @@ export function MapView() {
         coverage={coverage}
         probability={probability}
         searchNext={searchNext}
-        sightings={sightings}
+        sightings={promotedSightings}
         toggles={toggles}
       />
 
