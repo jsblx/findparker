@@ -8,6 +8,8 @@
   --color-primary-contrast: #ffffff;
   --color-border: #dddddd;
   --color-danger: #a3291c;
+  --color-warning: #92400e;
+  --color-warning-bg: #fef3c7;
   --tap-target: 48px;
   --radius: 10px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -93,8 +95,43 @@ button.primary {
   font-weight: 600;
 }
 
+button.danger {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+  font-weight: 600;
+}
+
 button:active {
   transform: scale(0.98);
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.warning-banner {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+.error-banner {
+  background: #fdecea;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .list {
@@ -134,13 +171,182 @@ button:active {
   padding: 0.75rem 1rem;
   display: flex;
   gap: 0.5rem;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
+.incident-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.incident-header-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incident-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.incident-header-actions select {
+  width: auto;
+  min-height: 40px;
+}
+
 .incident-content {
   flex: 1;
+}
+
+.embedded-map-section {
+  margin-top: 1rem;
+}
+
+.embedded-map {
+  position: relative;
+  height: 45vh;
+  min-height: 240px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.tracking-controls .mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mode-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--tap-target);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  font-weight: 600;
+  background: var(--color-surface);
+  margin-top: 0;
+}
+
+.mode-option.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.mode-option input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+}
+
+.status-panel,
+.support-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+.status-panel p,
+.support-panel p {
+  margin: 0.25rem 0;
+}
+
+.hint {
+  font-size: 0.85rem;
+}
+
+.location-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.photo-preview,
+.photo-thumbnail {
+  max-width: 100%;
+  border-radius: var(--radius);
+  margin-top: 0.25rem;
+}
+
+.photo-thumbnail {
+  max-height: 120px;
+  display: block;
+}
+
+.sighting-confirmation {
+  padding: 1rem;
+}
+
+.sighting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sighting-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.sighting-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.badge-verified {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #15803d;
+}
+
+.badge-unverified {
+  background: #fef9c3;
+  border-color: #ca8a04;
+  color: #854d0e;
+}
+
+.badge-rejected {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #4b5563;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.modal-sheet {
+  background: var(--color-bg);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 1rem;
 }
 
 .tab-bar {

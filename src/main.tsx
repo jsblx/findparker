@@ -1,23 +1,21 @@
-import { StrictMode, useMemo, useState } from 'react';
+import { StrictMode, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import './index.css';
 import { createDataProvider, DataProviderContext } from './data';
-import { CurrentUserContext } from './CurrentUserContext';
-import type { Profile } from './types';
+import { CurrentUserProvider } from './CurrentUserContext';
 
 function Root() {
   const provider = useMemo(() => createDataProvider(), []);
-  const [profile, setProfile] = useState<Profile | null>(null);
 
   return (
     <DataProviderContext.Provider value={provider}>
-      <CurrentUserContext.Provider value={{ profile, setProfile }}>
+      <CurrentUserProvider>
         <BrowserRouter>
           <App />
         </BrowserRouter>
-      </CurrentUserContext.Provider>
+      </CurrentUserProvider>
     </DataProviderContext.Provider>
   );
 }
