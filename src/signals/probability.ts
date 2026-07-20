@@ -14,6 +14,13 @@ import type { LatLng, Sighting, SubjectCategory } from '../types';
 const DEFAULT_SIGHTING_SIGMA_M = CONFIG.CORROBORATION_RADIUS_M;
 /** Bumps are only spread to cells within this many standard deviations (captures ~99.7% of the Gaussian's mass). */
 const BUMP_RADIUS_SIGMAS = 3;
+/**
+ * Upper bound on how much of the blended surface's mass a verified sighting can claim, even at
+ * full confidence/recency. Keeps the distance prior visible everywhere instead of being
+ * annihilated by a sighting bump that (pre-normalization) is orders of magnitude larger than any
+ * single prior cell.
+ */
+const DEFAULT_ALPHA_MAX = 0.8;
 
 export interface ProbabilitySurfaceInput {
   ipp: LatLng;
@@ -24,27 +31,72 @@ export interface ProbabilitySurfaceInput {
   res?: number;
   lambda?: number;
   sightingSigmaM?: number;
+  /** Overrides the default cap (0.8) on sighting-influence weight in the prior/sighting blend. */
+  alphaMax?: number;
+}
+
+/** Confidence discounted by how long ago the sighting was observed; 0 once fully decayed. */
+function sightingWeight(sighting: Sighting, now: number, lambda: number): number {
+  return sighting.confidence * Math.exp(-lambda * Math.max(0, now - sighting.observedAt));
 }
 
 function addSightingBump(
-  base: Map<string, number>,
+  surface: Map<string, number>,
   sighting: Sighting,
-  now: number,
-  lambda: number,
+  weight: number,
   sigmaM: number,
   res: number,
 ): void {
   const position: LatLng = { lat: sighting.lat, lng: sighting.lng };
-  const recencyWeight = sighting.confidence * Math.exp(-lambda * Math.max(0, now - sighting.observedAt));
-  if (recencyWeight <= 0) return;
-
   const nearbyCells = cellsForPoint(position, sigmaM * BUMP_RADIUS_SIGMAS, res);
   for (const h3 of nearbyCells) {
     const distanceM = haversineM(cellCenter(h3), position);
     const gaussian = Math.exp(-(distanceM * distanceM) / (2 * sigmaM * sigmaM));
-    const bump = recencyWeight * gaussian;
-    base.set(h3, (base.get(h3) ?? 0) + bump);
+    const bump = weight * gaussian;
+    surface.set(h3, (surface.get(h3) ?? 0) + bump);
   }
+}
+
+/**
+ * Blends the distance prior with verified-sighting evidence by MASS rather than raw addition:
+ * both `priorMap` and the sighting bumps are normalized to sum to 1 before being combined as
+ * `(1 - alpha) * prior + alpha * sightingSurface`, where `alpha` is capped (see DEFAULT_ALPHA_MAX)
+ * and scaled by the sightings' mean effective (recency-discounted) confidence. This way a
+ * high-confidence sighting concentrates probability near it without erasing the prior elsewhere,
+ * and a low-confidence one only nudges the surface.
+ */
+function blendPriorWithSightings(
+  priorMap: Map<string, number>,
+  verifiedSightings: Sighting[],
+  now: number,
+  lambda: number,
+  sigmaM: number,
+  res: number,
+  alphaMax: number,
+): Map<string, number> {
+  const sightingSurface = new Map<string, number>();
+  const weights: number[] = [];
+  for (const sighting of verifiedSightings) {
+    const weight = sightingWeight(sighting, now, lambda);
+    if (weight <= 0) continue;
+    weights.push(weight);
+    addSightingBump(sightingSurface, sighting, weight, sigmaM, res);
+  }
+
+  const sightingTotal = Array.from(sightingSurface.values()).reduce((sum, v) => sum + v, 0);
+  if (weights.length === 0 || sightingTotal <= 0) return priorMap;
+
+  const meanEffectiveConfidence = weights.reduce((sum, w) => sum + w, 0) / weights.length;
+  const alpha = alphaMax * Math.min(1, Math.max(0, meanEffectiveConfidence));
+
+  const keys = new Set([...priorMap.keys(), ...sightingSurface.keys()]);
+  const blended = new Map<string, number>();
+  for (const h3 of keys) {
+    const priorShare = priorMap.get(h3) ?? 0;
+    const sightingShare = (sightingSurface.get(h3) ?? 0) / sightingTotal;
+    blended.set(h3, (1 - alpha) * priorShare + alpha * sightingShare);
+  }
+  return blended;
 }
 
 /** Computes the normalized (sums to 1) remaining-probability surface over H3 cells. */
@@ -52,13 +104,15 @@ export function computeProbabilitySurface(input: ProbabilitySurfaceInput): Map<s
   const res = input.res ?? CONFIG.H3_RES;
   const lambda = input.lambda ?? decayLambdaPerMs();
   const sigmaM = input.sightingSigmaM ?? DEFAULT_SIGHTING_SIGMA_M;
+  const alphaMax = input.alphaMax ?? DEFAULT_ALPHA_MAX;
 
-  const base = computePriorCells(input.ipp, input.category, undefined, res);
+  const priorMap = computePriorCells(input.ipp, input.category, undefined, res);
+  const verifiedSightings = input.verifiedSightings.filter((s) => s.status === 'verified');
 
-  for (const sighting of input.verifiedSightings) {
-    if (sighting.status !== 'verified') continue;
-    addSightingBump(base, sighting, input.now, lambda, sigmaM, res);
-  }
+  const base =
+    verifiedSightings.length > 0
+      ? blendPriorWithSightings(priorMap, verifiedSightings, input.now, lambda, sigmaM, res, alphaMax)
+      : priorMap;
 
   const remaining = new Map<string, number>();
   for (const [h3, probability] of base) {

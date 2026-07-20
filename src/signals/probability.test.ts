@@ -126,6 +126,35 @@ describe('computeProbabilitySurface', () => {
     }
   });
 
+  it('does not annihilate the prior away from a high-confidence verified sighting', () => {
+    const farPoint = { lat: IPP.lat + 0.03, lng: IPP.lng + 0.03 };
+
+    const baseline = computeProbabilitySurface({
+      ipp: IPP,
+      category: 'hiker',
+      verifiedSightings: [],
+      coverage: new Map(),
+      now: NOW,
+    });
+
+    // The prior's peak cell (highest baseline probability), far from the sighting location.
+    const [peakCell, peakValue] = Array.from(baseline.entries()).sort((a, b) => b[1] - a[1])[0];
+
+    const sighting = makeSighting({ lat: farPoint.lat, lng: farPoint.lng, observedAt: NOW, confidence: 0.95 });
+    const withSighting = computeProbabilitySurface({
+      ipp: IPP,
+      category: 'hiker',
+      verifiedSightings: [sighting],
+      coverage: new Map(),
+      now: NOW,
+    });
+
+    const peakAfter = withSighting.get(peakCell) ?? 0;
+    // A single sighting bump must not collapse the entire surface onto itself: the prior's
+    // peak should retain a meaningful share of the mass, not be reduced to ~0.
+    expect(peakAfter).toBeGreaterThan(peakValue * 0.05);
+  });
+
   it('always sums to approximately 1', () => {
     const sighting = makeSighting({});
     const ippCell = pointToCell(IPP);
