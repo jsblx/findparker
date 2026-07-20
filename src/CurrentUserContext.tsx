@@ -83,7 +83,11 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     if (!stored) return;
     let cancelled = false;
     provider
-      .signInAnonymously(stored.displayName, stored.role)
+      .getCurrentUser()
+      .then((existing) => {
+        if (existing) return existing;
+        return provider.signInAnonymously(stored.displayName, stored.role);
+      })
       .then((signedIn) => {
         if (!cancelled) setProfileState(signedIn);
       })

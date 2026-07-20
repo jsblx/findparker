@@ -45,4 +45,21 @@ describe('sign-in flow', () => {
 
     expect(await screen.findByText(/signed in as/i)).toBeInTheDocument();
   });
+
+  it('rehydrates the existing identity on reload instead of minting a new anonymous user', async () => {
+    localStorage.setItem(
+      'findparker.identity',
+      JSON.stringify({ displayName: 'Jamie', role: 'coordinator' }),
+    );
+    const provider = new InMemoryProvider({
+      currentUser: { id: 'existing-user-1', displayName: 'Jamie', role: 'coordinator' },
+    });
+
+    renderApp(provider);
+
+    expect(await screen.findByText(/signed in as/i)).toBeInTheDocument();
+
+    const current = await provider.getCurrentUser();
+    expect(current?.id).toBe('existing-user-1');
+  });
 });
